@@ -288,9 +288,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryNotReady from e
 
     # Migrate entity unique_ids from int -> str if needed
-    if not hasattr(hass.data[DOMAIN], 'migration_done'):
-        hass.data[DOMAIN]['migration_done_flag'] = asyncio.Event()
-        hass.async_create_task(async_migrate_entity_unique_id(hass))
+    migration_key = f"migration_done_{entry.entry_id}"
+    if migration_key not in hass.data[DOMAIN]:
+        hass.data[DOMAIN][migration_key] = asyncio.Event()
+        hass.async_create_task(async_migrate_entity_unique_id(hass, entry.entry_id))
 
     # Set global variables from entry data
     global SCAN_INTERVAL
@@ -328,12 +329,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+        # Also cleanup migration flag
+        migration_key = f"migration_done_{entry.entry_id}"
+        hass.data[DOMAIN].pop(migration_key, None)
 
     return unload_ok
 
 
-async def async_migrate_entity_unique_id(hass: HomeAssistant):
+async def async_migrate_entity_unique_id(hass: HomeAssistant, entry_id: str | None = None):
     """Migrate entity unique IDs asynchronously."""
     registry = entity_registry.async_get(hass)
     for entity in list(registry.entities.values()):
@@ -341,8 +345,10 @@ async def async_migrate_entity_unique_id(hass: HomeAssistant):
             registry.async_update_entity(entity.entity_id, new_unique_id=str(entity.unique_id))
             _LOGGER.debug(f"Migrated unique_id from int to str for {entity.entity_id}")
 
-    if 'migration_done_flag' in hass.data[DOMAIN]:
-        hass.data[DOMAIN]['migration_done_flag'].set()
+    if entry_id:
+        migration_key = f"migration_done_{entry_id}"
+        if migration_key in hass.data.get(DOMAIN, {}):
+            hass.data[DOMAIN][migration_key].set()
 
 
 class Neviweb130Data:
