@@ -289,19 +289,22 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             # Update config entry with new options
             return self.async_create_entry(title="", data=user_input)
 
-        current_scan_interval = self.config_entry.data.get(
+        # Get current values from options first, then fall back to data
+        current_data = {**self.config_entry.data, **self.config_entry.options}
+        
+        current_scan_interval = current_data.get(
             CONF_SCAN_INTERVAL, int(DEFAULT_SCAN_INTERVAL.total_seconds())
         )
-        current_stat_interval = self.config_entry.data.get(
+        current_stat_interval = current_data.get(
             CONF_STAT_INTERVAL, DEFAULT_STAT_INTERVAL
         )
-        current_homekit_mode = self.config_entry.data.get(
+        current_homekit_mode = current_data.get(
             CONF_HOMEKIT_MODE, DEFAULT_HOMEKIT_MODE
         )
-        current_ignore_miwi = self.config_entry.data.get(
+        current_ignore_miwi = current_data.get(
             CONF_IGNORE_MIWI, DEFAULT_IGNORE_MIWI
         )
-        current_notify = self.config_entry.data.get(CONF_NOTIFY, DEFAULT_NOTIFY)
+        current_notify = current_data.get(CONF_NOTIFY, DEFAULT_NOTIFY)
 
         options_schema = vol.Schema(
             {

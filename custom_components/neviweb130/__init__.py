@@ -265,8 +265,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if DOMAIN not in hass.data:
         hass.data[DOMAIN] = {}
 
-    # Get configuration from the entry
+    # Get configuration from the entry, merging data and options
+    # Options take precedence over data for updatable settings
     config_data = dict(entry.data)
+    if entry.options:
+        config_data.update(entry.options)
 
     # Handle scan_interval - ensure it's in the right format
     scan_interval = config_data.get(CONF_SCAN_INTERVAL, int(DEFAULT_SCAN_INTERVAL.total_seconds()))
