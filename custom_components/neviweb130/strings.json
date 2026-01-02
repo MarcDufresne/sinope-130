@@ -1,0 +1,57 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Neviweb130 Setup",
+        "description": "Enter your Neviweb credentials to connect to your devices.",
+        "data": {
+          "username": "Username (email)",
+          "password": "Password"
+        }
+      },
+      "networks": {
+        "title": "Select Networks",
+        "description": "Select the networks (locations) you want to control. Available networks: {networks}\n\nLeave empty to use the first available networks automatically.",
+        "data": {
+          "network": "Network 1 (Primary location)",
+          "network2": "Network 2 (Secondary location)",
+          "network3": "Network 3 (Third location)"
+        }
+      },
+      "options": {
+        "title": "Optional Settings",
+        "description": "Configure optional settings for Neviweb130.",
+        "data": {
+          "scan_interval": "Scan interval (seconds, 300-600)",
+          "homekit_mode": "Enable HomeKit mode",
+          "ignore_miwi": "Ignore Mi-Wi devices",
+          "stat_interval": "Statistics interval (seconds, 300-1800)",
+          "notify": "Notification method"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Neviweb. Please check your internet connection.",
+      "invalid_auth": "Invalid username or password.",
+      "unknown": "Unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This Neviweb account is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Neviweb130 Options",
+        "description": "Update optional settings for Neviweb130.",
+        "data": {
+          "scan_interval": "Scan interval (seconds, 300-600)",
+          "homekit_mode": "Enable HomeKit mode",
+          "ignore_miwi": "Ignore Mi-Wi devices",
+          "stat_interval": "Statistics interval (seconds, 300-1800)",
+          "notify": "Notification method"
+        }
+      }
+    }
+  }
+}

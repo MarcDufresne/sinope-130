@@ -138,7 +138,7 @@ There are two methods to install this custom component:
 - via HACS component:
   - This repository is compatible with the Home Assistant Community Store 
     ([HACS](https://community.home-assistant.io/t/custom-component-hacs/121727)).
-  - After installing HACS, install 'sinope-130' from the store, and use the configuration.yaml example below.
+  - After installing HACS, install 'sinope-130' from the store.
 - Manually via direct download:
   - Download the zip file of this repository using the top right, green download button.
   - Extract the zip file on your computer, then copy the entire `custom_components` folder inside your Home Assistant 
@@ -153,18 +153,33 @@ There are two methods to install this custom component:
           __init__.py
           climate.py
           const.py
+          config_flow.py
           helpers.py
           light.py
           manifest.json
           schema.py
           sensor.py
           services.yaml
+          strings.json
           switch.py 
           valve.py
     ```
 ## Configuration
 
-To enable Neviweb130 management in your installation, add the following to your `configuration.yaml` file, then restart 
+**NEW**: Neviweb130 now supports UI-based configuration! This is the recommended method for new installations.
+
+### Option 1: UI Configuration (Recommended)
+
+1. Go to **Settings** → **Devices & Services** in Home Assistant
+2. Click **+ ADD INTEGRATION**
+3. Search for "Neviweb130" or "Sinope"
+4. Follow the setup wizard to enter your credentials and configure options
+
+For detailed instructions, see [UI_CONFIGURATION.md](UI_CONFIGURATION.md).
+
+### Option 2: YAML Configuration (Legacy)
+
+To enable Neviweb130 management via YAML configuration, add the following to your `configuration.yaml` file, then restart 
 Home Assistant.
 
 ```yaml
@@ -181,6 +196,10 @@ neviweb130:
   stat_interval: 1800
   notify: "both"
 ```
+
+**Note**: You can use either UI configuration OR YAML configuration, but not both simultaneously for the same account. 
+The UI configuration method is recommended for new users as it's easier to set up and manage.
+
 Networks names are the names found on top of first page after logging into Neviweb. If you have more then one network, 
 just click on icon on top to find all networks names. Select the one used for GT130 or Wi-Fi devices. Both devices types 
 must be on same network to work in neviweb130. If you have two networks for two GT130 or two Wi-Fi groups then you can 

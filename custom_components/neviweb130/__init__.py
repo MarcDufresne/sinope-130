@@ -10,6 +10,7 @@ from typing import Any
 import requests
 from homeassistant.components.climate.const import PRESET_AWAY, PRESET_HOME, HVACMode
 from homeassistant.components.persistent_notification import DOMAIN as PN_DOMAIN
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_SCAN_INTERVAL, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError, ConfigEntryNotReady, IntegrationError
@@ -208,8 +209,12 @@ def migrate_entity_unique_id(hass: HomeAssistant):
 
 
 def setup(hass: HomeAssistant, hass_config: dict[str, Any]) -> bool:
-    """Set up neviweb130."""
+    """Set up neviweb130 from YAML configuration."""
     _LOGGER.info(STARTUP_MESSAGE)
+
+    # If there's no YAML config, skip this setup (will use config entries)
+    if DOMAIN not in hass_config:
+        return True
 
     try:
         data = Neviweb130Data(hass, hass_config[DOMAIN])
@@ -250,6 +255,103 @@ def setup(hass: HomeAssistant, hass_config: dict[str, Any]) -> bool:
     discovery.load_platform(hass, Platform.VALVE, DOMAIN, {}, hass_config)
 
     return True
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up neviweb130 from a config entry."""
+    _LOGGER.info(STARTUP_MESSAGE)
+
+    # Initialize hass.data for this domain if not already done
+    if DOMAIN not in hass.data:
+        hass.data[DOMAIN] = {}
+
+    # Get configuration from the entry, merging data and options
+    # Options take precedence over data for updatable settings
+    config_data = dict(entry.data)
+    if entry.options:
+        config_data.update(entry.options)
+
+    # Handle scan_interval - ensure it's in the right format
+    scan_interval = config_data.get(CONF_SCAN_INTERVAL, int(DEFAULT_SCAN_INTERVAL.total_seconds()))
+    if isinstance(scan_interval, int):
+        pass  # Already in seconds
+    elif hasattr(scan_interval, "total_seconds"):
+        scan_interval = int(scan_interval.total_seconds())
+    else:
+        scan_interval = int(DEFAULT_SCAN_INTERVAL.total_seconds())
+
+    config_data[CONF_SCAN_INTERVAL] = scan_interval
+
+    try:
+        # Create the data object with entry config
+        data = Neviweb130Data(hass, config_data)
+        hass.data[DOMAIN][entry.entry_id] = data
+    except IntegrationError as e:
+        _LOGGER.error("Neviweb initialization failed: %s", e)
+        raise ConfigEntryNotReady from e
+
+    # Migrate entity unique_ids from int -> str if needed
+    migration_key = f"migration_done_{entry.entry_id}"
+    if migration_key not in hass.data[DOMAIN]:
+        hass.data[DOMAIN][migration_key] = asyncio.Event()
+        hass.async_create_task(async_migrate_entity_unique_id(hass, entry.entry_id))
+
+    # Set global variables from entry data
+    global SCAN_INTERVAL
+    SCAN_INTERVAL = scan_interval
+    _LOGGER.debug("Setting scan interval to: %s", SCAN_INTERVAL)
+
+    global HOMEKIT_MODE
+    HOMEKIT_MODE = config_data.get(CONF_HOMEKIT_MODE, DEFAULT_HOMEKIT_MODE)
+    _LOGGER.debug("Setting Homekit mode to: %s", HOMEKIT_MODE)
+
+    global IGNORE_MIWI
+    IGNORE_MIWI = config_data.get(CONF_IGNORE_MIWI, DEFAULT_IGNORE_MIWI)
+    _LOGGER.debug("Setting ignore miwi to: %s", IGNORE_MIWI)
+
+    global STAT_INTERVAL
+    STAT_INTERVAL = config_data.get(CONF_STAT_INTERVAL, DEFAULT_STAT_INTERVAL)
+    _LOGGER.debug("Setting stat interval to: %s", STAT_INTERVAL)
+
+    global NOTIFY
+    NOTIFY = config_data.get(CONF_NOTIFY, DEFAULT_NOTIFY)
+    _LOGGER.debug("Setting notification method to: %s", NOTIFY)
+
+    # Forward the setup to platforms
+    await hass.config_entries.async_forward_entry_setups(
+        entry, [Platform.CLIMATE, Platform.LIGHT, Platform.SWITCH, Platform.SENSOR, Platform.VALVE]
+    )
+
+    return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    unload_ok = await hass.config_entries.async_unload_platforms(
+        entry, [Platform.CLIMATE, Platform.LIGHT, Platform.SWITCH, Platform.SENSOR, Platform.VALVE]
+    )
+
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+        # Also cleanup migration flag
+        migration_key = f"migration_done_{entry.entry_id}"
+        hass.data[DOMAIN].pop(migration_key, None)
+
+    return unload_ok
+
+
+async def async_migrate_entity_unique_id(hass: HomeAssistant, entry_id: str | None = None):
+    """Migrate entity unique IDs asynchronously."""
+    registry = entity_registry.async_get(hass)
+    for entity in list(registry.entities.values()):
+        if entity.platform == DOMAIN and isinstance(entity.unique_id, int):
+            registry.async_update_entity(entity.entity_id, new_unique_id=str(entity.unique_id))
+            _LOGGER.debug(f"Migrated unique_id from int to str for {entity.entity_id}")
+
+    if entry_id:
+        migration_key = f"migration_done_{entry_id}"
+        if migration_key in hass.data.get(DOMAIN, {}):
+            hass.data[DOMAIN][migration_key].set()
 
 
 class Neviweb130Data:
