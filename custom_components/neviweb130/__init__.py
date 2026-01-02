@@ -285,6 +285,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         # Create the data object with entry config
         data = Neviweb130Data(hass, config_data)
+        # Initialize the client asynchronously
+        await data.async_initialize()
         hass.data[DOMAIN][entry.entry_id] = data
     except IntegrationError as e:
         _LOGGER.error("Neviweb initialization failed: %s", e)
@@ -370,6 +372,10 @@ class Neviweb130Data:
 
         self.migration_done = asyncio.Event()
 
+    async def async_initialize(self):
+        """Initialize the Neviweb130 client."""
+        await self.neviweb130_client.async_initialize()
+
 
 # According to HA:
 # https://developers.home-assistant.io/docs/en/creating_component_code_review.html
@@ -416,17 +422,36 @@ class Neviweb130Client:
         self._occupancyMode = None
         self.user = None
 
-        self.__post_login_page()
-        self.__get_network()
-        self.__get_gateway_data()
+    async def async_initialize(self):
+        """Initialize the client by logging in and fetching data."""
+        await self.hass.async_add_executor_job(self.__post_login_page)
+        await self.hass.async_add_executor_job(self.__get_network)
+        await self.hass.async_add_executor_job(self.__get_gateway_data)
+
+    async def async_update(self):
+        """Update gateway data."""
+        await self.hass.async_add_executor_job(self.__get_gateway_data)
 
     def update(self):
+        """Update gateway data (sync wrapper for backward compatibility)."""
         self.__get_gateway_data()
 
+    async def async_test_connect(self):
+        """Test connection."""
+        await self.hass.async_add_executor_job(self.__post_login_page)
+
     def test_connect(self):
+        """Test connection (sync wrapper for backward compatibility)."""
         self.__post_login_page()
 
+    async def async_reconnect(self):
+        """Reconnect to Neviweb."""
+        await self.hass.async_add_executor_job(self.__post_login_page)
+        await self.hass.async_add_executor_job(self.__get_network)
+        await self.hass.async_add_executor_job(self.__get_gateway_data)
+
     def reconnect(self):
+        """Reconnect to Neviweb (sync wrapper for backward compatibility)."""
         self.__post_login_page()
         self.__get_network()
         self.__get_gateway_data()
