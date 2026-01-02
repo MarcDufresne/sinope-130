@@ -81,9 +81,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         # Get available networks
         headers = {"Session-Id": session_id}
         locations_response = await hass.async_add_executor_job(
-            lambda: requests.get(
-                LOCATIONS_URL + account_id, headers=headers, cookies=cookies, timeout=REQUESTS_TIMEOUT
-            )
+            lambda: requests.get(LOCATIONS_URL + account_id, headers=headers, cookies=cookies, timeout=REQUESTS_TIMEOUT)
         )
 
         networks = locations_response.json()
@@ -112,9 +110,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._networks: list[str] = []
         self._username: str | None = None
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step."""
         errors: dict[str, str] = {}
 
@@ -153,20 +149,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             }
         )
 
-        return self.async_show_form(
-            step_id="user", data_schema=data_schema, errors=errors
-        )
+        return self.async_show_form(step_id="user", data_schema=data_schema, errors=errors)
 
-    async def async_step_networks(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_networks(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle network selection step."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             # Merge with previous user input
             data = self.context["user_input"]
-            
+
             # Add optional network selections
             if user_input.get(CONF_NETWORK):
                 data[CONF_NETWORK] = user_input[CONF_NETWORK]
@@ -179,7 +171,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Build network selection schema with discovered networks
         network_options = [""] + self._networks  # Empty string for "none"
-        
+
         data_schema = vol.Schema(
             {
                 vol.Optional(CONF_NETWORK): vol.In(network_options),
@@ -197,9 +189,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_step_options(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_options(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle optional configuration step."""
         errors: dict[str, str] = {}
 
@@ -214,7 +204,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 scan_interval = int(DEFAULT_SCAN_INTERVAL.total_seconds())
 
             stat_interval = user_input.get(CONF_STAT_INTERVAL, DEFAULT_STAT_INTERVAL)
-            
+
             # Build final data dictionary
             data = {
                 CONF_USERNAME: user_input[CONF_USERNAME],
@@ -241,27 +231,21 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         data_schema = vol.Schema(
             {
-                vol.Optional(
-                    CONF_SCAN_INTERVAL, default=default_scan_seconds
-                ): vol.All(vol.Coerce(int), vol.Range(min=300, max=600)),
-                vol.Optional(
-                    CONF_HOMEKIT_MODE, default=DEFAULT_HOMEKIT_MODE
-                ): cv.boolean,
-                vol.Optional(
-                    CONF_IGNORE_MIWI, default=DEFAULT_IGNORE_MIWI
-                ): cv.boolean,
-                vol.Optional(
-                    CONF_STAT_INTERVAL, default=DEFAULT_STAT_INTERVAL
-                ): vol.All(vol.Coerce(int), vol.Range(min=300, max=1800)),
+                vol.Optional(CONF_SCAN_INTERVAL, default=default_scan_seconds): vol.All(
+                    vol.Coerce(int), vol.Range(min=300, max=600)
+                ),
+                vol.Optional(CONF_HOMEKIT_MODE, default=DEFAULT_HOMEKIT_MODE): cv.boolean,
+                vol.Optional(CONF_IGNORE_MIWI, default=DEFAULT_IGNORE_MIWI): cv.boolean,
+                vol.Optional(CONF_STAT_INTERVAL, default=DEFAULT_STAT_INTERVAL): vol.All(
+                    vol.Coerce(int), vol.Range(min=300, max=1800)
+                ),
                 vol.Optional(CONF_NOTIFY, default=DEFAULT_NOTIFY): vol.In(
                     ["both", "logging", "nothing", "notification"]
                 ),
             }
         )
 
-        return self.async_show_form(
-            step_id="options", data_schema=data_schema, errors=errors
-        )
+        return self.async_show_form(step_id="options", data_schema=data_schema, errors=errors)
 
     @staticmethod
     @callback
@@ -275,9 +259,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for Neviweb130."""
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manage the options."""
         errors: dict[str, str] = {}
 
@@ -287,44 +269,30 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         # Get current values from options first, then fall back to data
         current_data = {**self.config_entry.data, **self.config_entry.options}
-        
-        current_scan_interval = current_data.get(
-            CONF_SCAN_INTERVAL, int(DEFAULT_SCAN_INTERVAL.total_seconds())
-        )
-        current_stat_interval = current_data.get(
-            CONF_STAT_INTERVAL, DEFAULT_STAT_INTERVAL
-        )
-        current_homekit_mode = current_data.get(
-            CONF_HOMEKIT_MODE, DEFAULT_HOMEKIT_MODE
-        )
-        current_ignore_miwi = current_data.get(
-            CONF_IGNORE_MIWI, DEFAULT_IGNORE_MIWI
-        )
+
+        current_scan_interval = current_data.get(CONF_SCAN_INTERVAL, int(DEFAULT_SCAN_INTERVAL.total_seconds()))
+        current_stat_interval = current_data.get(CONF_STAT_INTERVAL, DEFAULT_STAT_INTERVAL)
+        current_homekit_mode = current_data.get(CONF_HOMEKIT_MODE, DEFAULT_HOMEKIT_MODE)
+        current_ignore_miwi = current_data.get(CONF_IGNORE_MIWI, DEFAULT_IGNORE_MIWI)
         current_notify = current_data.get(CONF_NOTIFY, DEFAULT_NOTIFY)
 
         options_schema = vol.Schema(
             {
-                vol.Optional(
-                    CONF_SCAN_INTERVAL, default=current_scan_interval
-                ): vol.All(vol.Coerce(int), vol.Range(min=300, max=600)),
-                vol.Optional(
-                    CONF_HOMEKIT_MODE, default=current_homekit_mode
-                ): cv.boolean,
-                vol.Optional(
-                    CONF_IGNORE_MIWI, default=current_ignore_miwi
-                ): cv.boolean,
-                vol.Optional(
-                    CONF_STAT_INTERVAL, default=current_stat_interval
-                ): vol.All(vol.Coerce(int), vol.Range(min=300, max=1800)),
+                vol.Optional(CONF_SCAN_INTERVAL, default=current_scan_interval): vol.All(
+                    vol.Coerce(int), vol.Range(min=300, max=600)
+                ),
+                vol.Optional(CONF_HOMEKIT_MODE, default=current_homekit_mode): cv.boolean,
+                vol.Optional(CONF_IGNORE_MIWI, default=current_ignore_miwi): cv.boolean,
+                vol.Optional(CONF_STAT_INTERVAL, default=current_stat_interval): vol.All(
+                    vol.Coerce(int), vol.Range(min=300, max=1800)
+                ),
                 vol.Optional(CONF_NOTIFY, default=current_notify): vol.In(
                     ["both", "logging", "nothing", "notification"]
                 ),
             }
         )
 
-        return self.async_show_form(
-            step_id="init", data_schema=options_schema, errors=errors
-        )
+        return self.async_show_form(step_id="init", data_schema=options_schema, errors=errors)
 
 
 class CannotConnect(HomeAssistantError):
